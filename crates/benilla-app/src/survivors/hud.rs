@@ -296,6 +296,7 @@ pub(super) fn setup_hud(
     commands
         .spawn((
             HudRoot,
+            super::touch::SafeRoot,
             Node {
                 position_type: PositionType::Absolute,
                 width: Val::Percent(100.0),
@@ -610,6 +611,7 @@ pub(super) fn setup_hud(
     // --- The run's pick screen; [`super::menu`] builds into it once the glue art is in. ---
     commands.spawn((
         MenuRoot,
+        super::touch::SafeRoot,
         Node {
             position_type: PositionType::Absolute,
             width: Val::Percent(100.0),
@@ -624,6 +626,7 @@ pub(super) fn setup_hud(
     commands
         .spawn((
             LevelUpRoot,
+            super::touch::SafeRoot,
             Node {
                 position_type: PositionType::Absolute,
                 width: Val::Percent(100.0),
@@ -715,6 +718,7 @@ pub(super) fn setup_hud(
     commands
         .spawn((
             PauseRoot,
+            super::touch::SafeRoot,
             Node {
                 position_type: PositionType::Absolute,
                 width: Val::Percent(100.0),
@@ -758,6 +762,7 @@ pub(super) fn setup_hud(
     commands
         .spawn((
             OverRoot,
+            super::touch::SafeRoot,
             Node {
                 position_type: PositionType::Absolute,
                 width: Val::Percent(100.0),
@@ -1486,13 +1491,15 @@ pub(super) fn fill_art(
     }
 }
 
-/// The reference lays its UI out on a screen 768 units tall at any resolution (`useUiScale` off).
+/// The reference lays its UI out on a screen 768 units tall at any resolution (`useUiScale` off);
+/// here the height inside the safe area ([`super::touch::SafeArea`]), which the roots keep to.
 pub(super) fn apply_ui_scale(
     windows: Query<&Window, With<PrimaryWindow>>,
+    safe: Res<super::touch::SafeArea>,
     mut scale: ResMut<UiScale>,
 ) {
     let Ok(window) = windows.single() else { return };
-    let want = window.height() / 768.0;
+    let want = (window.height() - safe.top - safe.bottom) / 768.0;
     if want > 0.0 && (scale.0 - want).abs() > 1e-4 {
         scale.0 = want;
     }
@@ -1510,6 +1517,7 @@ const PLATE_NUDGE: f32 = 2.0;
 pub(super) fn hero_plate(
     run: Res<Run>,
     ui_scale: Res<UiScale>,
+    safe: Res<super::touch::SafeArea>,
     hero: Query<&Transform, With<Hero>>,
     cams: Query<(&Camera, &Transform), With<WorldCamera>>,
     mut nodes: ParamSet<(
@@ -1549,6 +1557,8 @@ pub(super) fn hero_plate(
     let bar_top = ph - gx(BAR_OFF_Y) - gx(BAR_H);
     frame.width = Val::Px(pw);
     frame.height = Val::Px(ph);
+    // The feet are in window pixels; the HUD root starts at the safe area's corner.
+    let feet = feet - Vec2::new(safe.left, safe.top);
     frame.left = Val::Px(feet.x / s - pw / 2.0);
     frame.top = Val::Px(feet.y / s + gx(PLATE_FEET_GAP) - bar_top + PLATE_NUDGE / s);
     if let Ok(mut bar) = nodes.p1().single_mut() {

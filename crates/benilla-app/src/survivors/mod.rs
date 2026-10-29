@@ -16,6 +16,7 @@ mod hud;
 mod menu;
 mod minimap;
 mod mobility;
+mod touch;
 mod units;
 
 use benilla_world::schedule::WorldStage;
@@ -50,11 +51,25 @@ impl Plugin for SurvivorsPlugin {
             .init_resource::<enemies::Spawner>()
             .init_resource::<hud::Offer>()
             .init_resource::<cards::PendingPick>()
+            .init_resource::<touch::SafeArea>()
+            .init_resource::<touch::TouchStick>()
+            .init_resource::<touch::TouchMode>()
             .add_message::<abilities::Hit>()
             .add_message::<enemies::Loot>()
             .add_plugins(bevy::ui_render::UiMaterialPlugin::<hud::SweepUiMaterial>::default())
             .add_plugins(bevy::ui_render::UiMaterialPlugin::<fill::FillMaterial>::default())
-            .add_systems(Startup, hud::setup_hud)
+            .add_systems(Startup, (hud::setup_hud, touch::spawn_controls))
+            .add_systems(
+                PreUpdate,
+                (touch::read_safe_area, touch::touch_input)
+                    .chain()
+                    .after(bevy::input::InputSystems)
+                    .before(bevy::ui::UiSystems::Focus),
+            )
+            .add_systems(
+                PreUpdate,
+                touch::touch_keys.after(bevy::ui::UiSystems::Focus),
+            )
             .add_systems(Update, hero::daylight)
             .add_systems(
                 Update,
@@ -120,6 +135,8 @@ impl Plugin for SurvivorsPlugin {
                 Update,
                 (
                     hud::apply_ui_scale,
+                    touch::inset_roots,
+                    touch::show_controls,
                     hud::fill_art,
                     hud::xp_hover,
                     hud::icon_tooltip,

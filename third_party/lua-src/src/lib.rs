@@ -140,6 +140,8 @@ impl Build {
             }
             _ if target.contains("apple-ios") => {
                 config.define("LUA_USE_POSIX", None);
+                // iOS has no `system()`: `os.execute` raises instead, as on WASI.
+                config.define("LUA_NO_SYSTEM", None);
             }
             _ if target.contains("windows") => {
                 // Defined in Lua >= 5.3

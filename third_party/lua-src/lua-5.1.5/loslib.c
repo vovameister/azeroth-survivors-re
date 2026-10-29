@@ -36,7 +36,7 @@ static int os_pushresult (lua_State *L, int i, const char *filename) {
 
 
 static int os_execute (lua_State *L) {
-#if !defined(__wasi__)
+#if !defined(__wasi__) && !defined(LUA_NO_SYSTEM)
   lua_pushinteger(L, system(luaL_optstring(L, 1, NULL)));
   return 1;
 #else

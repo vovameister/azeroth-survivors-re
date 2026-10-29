@@ -1,0 +1,19 @@
+[package]
+name = "azeroth-survivors-ios"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "The iOS entry point: the survivors mode as a static library the Xcode app (ios/) links and calls from main"
+
+[lints]
+workspace = true
+
+[lib]
+crate-type = ["staticlib"]
+test = false
+
+[dependencies]
+benilla-app = { path = "../benilla-app", default-features = false }
+
+[build-dependencies]
+benilla-buildstamp = { path = "../benilla-buildstamp" }
