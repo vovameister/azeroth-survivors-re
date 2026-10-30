@@ -10,7 +10,17 @@ Aethus's free fan-made WoW roguelike, running on a from-scratch WoW 1.12.1 clien
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20%2F%20Apache--2.0-blue.svg)](LICENSE-MIT)
 ![Platforms: macOS, iOS, iPadOS, browser](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20iPadOS%20%7C%20browser-lightgrey.svg)
 
-<img src="docs/screenshots/iphone.jpg" alt="A run in Tirisfal Glades on an iPhone 15 Pro Max: the touch HUD with the minimap, the pause button and the experience bar" width="100%">
+<img src="docs/screenshots/iphone.gif" alt="A Shaman's run on an iPhone 15 Pro Max: a level-up pick, then the twin sticks, totems and a fire ring holding off a pack" width="100%">
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/screenshots/iphone-plaguewood.jpg" alt="A Warrior fighting in Plaguewood on an iPhone, with the touch HUD: spells, timer, minimap and pause button"></td>
+    <td width="33%"><img src="docs/screenshots/iphone-barrens.jpg" alt="A pack of zebras and plainstriders closing in on the hero in the Barrens"></td>
+    <td width="33%"><img src="docs/screenshots/iphone-level-up.jpg" alt="Level-up cards on the phone: Execute, Thunder Clap and an epic Sweeping Strikes"></td>
+  </tr>
+</table>
+
+<sub>The animation above is a compressed GIF; these are full-resolution iPhone screenshots.</sub>
 
 </div>
 
