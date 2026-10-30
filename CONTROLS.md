@@ -23,3 +23,19 @@
 The camera follows the hero, locked top-down by default (laptop-friendly). **C** unlocks it so a
 mouse drag swings and tilts it; **C** again snaps it back. In the menu it slowly orbits the
 preview hero. Your race, gender, class and zone are remembered across reloads.
+
+## Touch
+
+On an iPhone or iPad (and on any touch screen, from the first touch) the run plays as a
+twin-stick game.
+
+| When | Touch | Action |
+|---|---|---|
+| Menu, level up, pause, game over | tap | press what you tap: a pick, a card, a button |
+| Playing | finger down on the **left** of the screen, then drag | a stick appears under the thumb and moves the hero |
+| Playing | finger down on the **right** of the screen, then drag | turns the hero, and aims the movement spell |
+| Playing | the big button at the **bottom centre** | your class's movement spell, with its cooldown on the button; it shows once the class has the spell |
+| Playing | the **pause** button, right of the minimap | pause; tap **Resume** to go on |
+| Playing | minimap **+ / −** | minimap zoom |
+
+The camera sits closer on a touch screen. Sending the app to the background pauses the run.

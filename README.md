@@ -1,25 +1,52 @@
-<img width="1920" height="1080" alt="brag" src="https://github.com/user-attachments/assets/fa574bb6-7bd4-4e78-8b72-14c58e3c716e" />
-
 <div align="center">
 
-# Azeroth Survivors
+# Azeroth Survivors for macOS and iOS
 
-**A free fan-made WoW roguelike by [Aethus](https://wow.aethus.pl/), run locally on a
-from-scratch WoW 1.12.1 client engine (Rust + [Bevy](https://bevy.org)).**
+**A native Mac and iPhone/iPad port of
+[azeroth-survivors-re](https://github.com/OutThisLife/azeroth-survivors-re), the local build of
+Aethus's free fan-made WoW roguelike, running on a from-scratch WoW 1.12.1 client engine
+(Rust + [Bevy](https://bevy.org)).**
 
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20%2F%20Apache--2.0-blue.svg)](LICENSE-MIT)
+![Platforms: macOS, iOS, iPadOS, browser](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20iPadOS%20%7C%20browser-lightgrey.svg)
+
+<img src="docs/screenshots/iphone.jpg" alt="A run in Tirisfal Glades on an iPhone 15 Pro Max: the touch HUD with the minimap, the pause button and the experience bar" width="100%">
 
 </div>
 
 > **Not an original project.** *Azeroth Survivors* is a free, fan-made WoW roguelike by
-> **Aethus** — play the original in the browser at **[wow.aethus.pl](https://wow.aethus.pl/)**
+> **Aethus**: play the original in the browser at **[wow.aethus.pl](https://wow.aethus.pl/)**
 > ([r/wowservers announcement](https://www.reddit.com/r/wowservers/comments/1x0yidl/azeroth_survivors_roguelike_wow_singleplayer_game/)
-> · [Discord](https://discord.gg/UzxaZuSAk)). This repository is a from-source local build of the
-> game, running on the [benilla](#how-its-built) / [wenilla](#how-its-built) engine, for personal use.
+> · [Discord](https://discord.gg/UzxaZuSAk)).
+> [azeroth-survivors-re](https://github.com/OutThisLife/azeroth-survivors-re) rebuilt it from
+> source on the [benilla](#how-its-built) / [wenilla](#how-its-built) engine as a local browser
+> build. This repository adds **native macOS and iOS builds** on top, for personal use.
 
-Pick a class and a battleground, then survive: WASD to move, your abilities cast themselves,
-enemies swarm in waves, you level up and pick upgrades, and a boss shows up every couple of
-minutes. **No server, no login, no account** — fully offline and self-contained.
+Pick a class and a battleground, then survive: move, your abilities cast themselves, enemies swarm
+in waves, you level up and pick upgrades, and a boss shows up every couple of minutes. **No
+server, no login, no account**: fully offline and self-contained.
+
+## What this port adds
+
+- **A Mac app:** `make app` packages the native build as a signed `.app` with the data inside.
+- **iPhone and iPad:** an Xcode project around the game as a Rust static library, with
+  **twin-stick touch controls** (move on the left, aim on the right, the movement spell on a big
+  bottom-centre button), a layout that keeps to the screen's safe area, and a pause when the app
+  goes to the background.
+- **The game data trimmed from 5 GB to 1 GB** for the phone: a traced census of what the game
+  reads, packed into one patch archive (`scripts/trim-data.sh`).
+- Performance and platform fixes for phones: a cap on dropped experience gems, thread priorities
+  that iOS accepts, and a quiet system log.
+
+How it works, and what is left: [docs/IOS.md](docs/IOS.md).
+
+| Platform | Build | Guide |
+| --- | --- | --- |
+| Browser (WebGPU) | `make build && make start` | [Play in the browser](#play-in-the-browser) |
+| macOS | `make app` | [Mac](#mac) |
+| iPhone, iPad | Xcode, `ios/AzerothSurvivors.xcodeproj` | [iPhone and iPad](#iphone-and-ipad) |
+
+## The game
 
 <table>
   <tr>
@@ -47,11 +74,11 @@ minutes. **No server, no login, no account** — fully offline and self-containe
   unlocks it to swing and tilt, and the wheel zooms from over the shoulder out to 70 yards.
 - A light sharpen-and-colour pass over the picture (**G** toggles it).
 
-## Play it
+## Play in the browser
 
 ```bash
-git clone https://github.com/OutThisLife/azeroth-survivors-re
-cd azeroth-survivors-re
+git clone <this repository's URL> azeroth-survivors
+cd azeroth-survivors
 make build     # fetch game data + install toolchain + build the wasm (~5.5 GB download)
 make start     # → open http://127.0.0.1:8090/
 ```
@@ -72,11 +99,13 @@ Run `make` (or `make help`) to list every target.
 
 See [CONTROLS.md](CONTROLS.md). The short version: **WASD** to move, **Space** to jump, **F**
 for your class's movement spell, the **mouse wheel** to zoom, **C** to unlock the camera, **Esc**
-to pause, **1/2/3** to pick a level-up card.
+to pause, **1/2/3** to pick a level-up card. On a phone or tablet: a stick under the left thumb,
+another under the right, and on-screen buttons ([touch controls](CONTROLS.md#touch)).
 
 ## macOS and iOS
 
-The same game runs natively, outside the browser, as a Mac app and on iPhone and iPad.
+The same game runs natively, outside the browser, as a Mac app and on iPhone and iPad. The
+design of the port and its known limits are in [docs/IOS.md](docs/IOS.md).
 
 ### Mac
 
@@ -108,10 +137,8 @@ The app carries its own copy of the data (an APFS clone, no extra disk space) an
    Build Rust phase compiles the game for the target (the first build takes a while), and the
    simulator reads the Mac's `wow-data/Data` directly instead of a bundled copy.
 
-**Touch controls:** the left half of the screen is a floating stick that moves the hero, the
-right half turns him and aims the movement spell, whose button sits at the bottom centre (shown
-once the class has it, with its cooldown). The pause button is at the top right; menus and cards
-are tapped. The run pauses when the app goes to the background.
+**Touch controls** are in [CONTROLS.md](CONTROLS.md#touch). The run pauses when the app goes to
+the background.
 
 `scripts/ios-sim-check.sh` plays all sixteen zones in a booted simulator on a data folder and
 reports any file the game could not find.
@@ -146,9 +173,23 @@ Or set it permanently by editing the single clearly-marked `DEFAULT_DATA_URL` li
 
 The survivors mode is `crates/benilla-app/src/survivors/`, running on two upstream projects:
 
-- [benilla](https://github.com/samwhosung/benilla) — a from-scratch WoW 1.12.1 client.
-- [wenilla](https://github.com/Arnesen/wenilla) — benilla compiled to WebAssembly, with a local
+- [benilla](https://github.com/samwhosung/benilla): a from-scratch WoW 1.12.1 client.
+- [wenilla](https://github.com/Arnesen/wenilla): benilla compiled to WebAssembly, with a local
   host and realm service.
+
+The native port adds `crates/azeroth-survivors-ios` (the iOS entry point), `ios/` (the Xcode
+project), `crates/benilla-app/src/survivors/touch.rs` (touch controls and safe area),
+`crates/benilla-mpq/src/write.rs` with `crates/benilla-formats/src/bin/mpqpack.rs` (the data
+trimmer) and the scripts `macos-app.sh`, `trim-data.sh` and `ios-sim-check.sh`.
+
+## Credits
+
+- **Aethus**: the game, *Azeroth Survivors* ([wow.aethus.pl](https://wow.aethus.pl/)).
+- **[OutThisLife](https://github.com/OutThisLife/azeroth-survivors-re)**: the from-source rebuild
+  this port starts from.
+- **[samwhosung/benilla](https://github.com/samwhosung/benilla)** and
+  **[Arnesen/wenilla](https://github.com/Arnesen/wenilla)**: the engine.
+- **Vladimir Klevtsov**: the macOS and iOS port.
 
 ## Legal
 
