@@ -21,6 +21,7 @@
 		AA0000000000000000000016 /* patch-sdk-version.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "patch-sdk-version.sh"; sourceTree = "<group>"; };
 		AA0000000000000000000017 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA0000000000000000000018 /* AppIcon.svg */ = {isa = PBXFileReference; lastKnownFileType = text; path = AppIcon.svg; sourceTree = "<group>"; };
+		AA0000000000000000000019 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -41,6 +42,7 @@
 				AA0000000000000000000033 /* Rust */,
 				AA0000000000000000000012 /* build-rust.sh */,
 				AA0000000000000000000016 /* patch-sdk-version.sh */,
+				AA0000000000000000000019 /* Signing.xcconfig */,
 				AA0000000000000000000032 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -310,6 +312,7 @@
 		};
 		AA0000000000000000000082 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA0000000000000000000019 /* Signing.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
@@ -346,7 +349,6 @@
 					"-framework",
 					SystemConfiguration,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "local.azeroth-survivors";
 				PRODUCT_NAME = AzerothSurvivors;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -355,6 +357,7 @@
 		};
 		AA0000000000000000000083 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA0000000000000000000019 /* Signing.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
@@ -391,7 +394,6 @@
 					"-framework",
 					SystemConfiguration,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "local.azeroth-survivors";
 				PRODUCT_NAME = AzerothSurvivors;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				TARGETED_DEVICE_FAMILY = "1,2";

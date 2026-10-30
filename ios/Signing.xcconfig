@@ -1,0 +1,8 @@
+// Signing for the app target. A device build needs your Apple team: put it in Local.xcconfig
+// beside this file (copy Local.xcconfig.example; it is not committed). If Apple refuses the bundle
+// identifier as taken by another team, set your own there too. The simulator builds without either.
+
+PRODUCT_BUNDLE_IDENTIFIER = local.azeroth-survivors
+DEVELOPMENT_TEAM =
+
+#include? "Local.xcconfig"

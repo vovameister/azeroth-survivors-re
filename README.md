@@ -74,6 +74,51 @@ See [CONTROLS.md](CONTROLS.md). The short version: **WASD** to move, **Space** t
 for your class's movement spell, the **mouse wheel** to zoom, **C** to unlock the camera, **Esc**
 to pause, **1/2/3** to pick a level-up card.
 
+## macOS and iOS
+
+The same game runs natively, outside the browser, as a Mac app and on iPhone and iPad.
+
+### Mac
+
+```bash
+make app       # fetch game data + build → dist/Azeroth Survivors.app
+```
+
+The app carries its own copy of the data (an APFS clone, no extra disk space) and saves to
+`~/Library/Application Support/AzerothSurvivors`.
+
+### iPhone and iPad
+
+**Prerequisites:** a Mac with Xcode 27, [Rust](https://rustup.rs/), the game data
+(`make fetch-data`) and, for a device, an Apple account (a free one works). The app runs on iOS
+18.6 or later.
+
+1. **Optional, recommended: trim the data to 1 GB.**
+   ```bash
+   scripts/trim-data.sh
+   ```
+   The full client is 5 GB; the mode reads a fraction of it. The script plays every class and
+   zone in a native census run (game windows open for some minutes) to list the files the game
+   reads, then packs them, with every terrain tile, model, texture and sound they can lead to,
+   into `wow-data/Trimmed/`. A device build bundles that folder when it exists, else the full
+   client.
+2. **Signing:** copy `ios/Local.xcconfig.example` to `ios/Local.xcconfig` and put your team ID
+   in it (Xcode → Settings → Accounts). It stays out of git.
+3. Open `ios/AzerothSurvivors.xcodeproj`, pick your device or a simulator, and **Run**. The
+   Build Rust phase compiles the game for the target (the first build takes a while), and the
+   simulator reads the Mac's `wow-data/Data` directly instead of a bundled copy.
+
+**Touch controls:** the left half of the screen is a floating stick that moves the hero, the
+right half turns him and aims the movement spell, whose button sits at the bottom centre (shown
+once the class has it, with its cooldown). The pause button is at the top right; menus and cards
+are tapped. The run pauses when the app goes to the background.
+
+`scripts/ios-sim-check.sh` plays all sixteen zones in a booted simulator on a data folder and
+reports any file the game could not find.
+
+> A build with the data inside contains Blizzard's game files: keep it on your own devices. Do
+> not share the `.app` or an `.ipa`, or submit it anywhere.
+
 ## The game data (not in this repo)
 
 This repo ships **no Blizzard content** — no art, models, sounds, maps, MPQ contents, or

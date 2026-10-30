@@ -54,3 +54,8 @@ __pycache__/
 /tools/binaryen/
 /dist/
 xcuserdata/
+
+# Machine-local settings: your Apple signing team (ios/Local.xcconfig.example), and Claude's
+# Xcode bridge (`xcrun mcpbridge`), a per-developer tool.
+/ios/Local.xcconfig
+/.mcp.json
