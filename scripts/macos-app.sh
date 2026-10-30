@@ -92,21 +92,18 @@ if [ -z "${APP_NO_DATA:-}" ]; then
         || cp "${DATA}"/*.MPQ "${APP}/Contents/Resources/Data/"
 fi
 
-# The icon, from the web favicon: Quick Look renders the SVG, iconutil packs the sizes.
-ICON_SRC=web/favicon.svg
-if [ -f "${ICON_SRC}" ]; then
+# The icon, the iOS app's (rendered from ios/App/AppIcon.svg): sips cuts the sizes, iconutil packs
+# them.
+png=ios/App/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
+if [ -f "${png}" ]; then
     tmp="$(mktemp -d)"
-    qlmanage -t -s 1024 -o "${tmp}" "${ICON_SRC}" >/dev/null 2>&1 || true
-    png="${tmp}/$(basename "${ICON_SRC}").png"
-    if [ -f "${png}" ]; then
-        set_dir="${tmp}/AppIcon.iconset"
-        mkdir -p "${set_dir}"
-        for s in 16 32 128 256 512; do
-            sips -z $s $s "${png}" --out "${set_dir}/icon_${s}x${s}.png" >/dev/null
-            sips -z $((s * 2)) $((s * 2)) "${png}" --out "${set_dir}/icon_${s}x${s}@2x.png" >/dev/null
-        done
-        iconutil -c icns "${set_dir}" -o "${APP}/Contents/Resources/AppIcon.icns" || true
-    fi
+    set_dir="${tmp}/AppIcon.iconset"
+    mkdir -p "${set_dir}"
+    for s in 16 32 128 256 512; do
+        sips -z $s $s "${png}" --out "${set_dir}/icon_${s}x${s}.png" >/dev/null
+        sips -z $((s * 2)) $((s * 2)) "${png}" --out "${set_dir}/icon_${s}x${s}@2x.png" >/dev/null
+    done
+    iconutil -c icns "${set_dir}" -o "${APP}/Contents/Resources/AppIcon.icns" || true
     rm -rf "${tmp}"
 fi
 

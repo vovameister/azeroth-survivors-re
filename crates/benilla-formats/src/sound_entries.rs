@@ -64,6 +64,11 @@ pub struct SoundKitCatalog {
 }
 
 impl SoundKitCatalog {
+    /// Every kit, in no order: for tools that work over the whole table.
+    pub fn iter(&self) -> impl Iterator<Item = &SoundKit> {
+        self.kits.values()
+    }
+
     pub fn get(&self, id: u32) -> Option<&SoundKit> {
         self.kits.get(&id)
     }

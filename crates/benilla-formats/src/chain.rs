@@ -94,6 +94,43 @@ fn mount_order(dir_names: &[String]) -> Vec<String> {
     order
 }
 
+/// `WOW_DATA_TRACE=<file>`: every distinct name read through the chain, one per line as asked,
+/// appended as it is first read. Packing tools build a trimmed `Data` from the union of runs.
+#[cfg(not(target_arch = "wasm32"))]
+mod trace {
+    use std::collections::HashSet;
+    use std::io::Write;
+    use std::sync::{Mutex, OnceLock};
+
+    struct Trace {
+        seen: HashSet<String>,
+        out: std::fs::File,
+    }
+
+    static TRACE: OnceLock<Option<Mutex<Trace>>> = OnceLock::new();
+
+    pub(super) fn record(name: &str) {
+        let trace = TRACE.get_or_init(|| {
+            let path = std::env::var_os("WOW_DATA_TRACE")?;
+            let out = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path)
+                .ok()?;
+            Some(Mutex::new(Trace {
+                seen: HashSet::new(),
+                out,
+            }))
+        });
+        let Some(trace) = trace else { return };
+        let Ok(mut t) = trace.lock() else { return };
+        let key = name.replace('/', "\\").to_ascii_lowercase();
+        if t.seen.insert(key) {
+            let _ = writeln!(t.out, "{name}");
+        }
+    }
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 impl Chain {
     /// Open a `Data` directory's archives in [`mount_order`], or a single `.MPQ` file.
@@ -160,6 +197,7 @@ impl Chain {
     /// The archive `name` reads from, as a cheap handle: a caller holding the chain behind a lock
     /// looks the file up under it and reads (`Archive::open_file`) after releasing it. No I/O.
     pub fn archive_for(&self, name: &str) -> Result<Archive> {
+        trace::record(name);
         let archive = self
             .resolve(name)
             .ok_or_else(|| anyhow!("file not in patch chain: {name}"))?;

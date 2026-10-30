@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- The app icon: a gold W on a stone-blue medallion in a gold ring. Source of
+       Assets.xcassets/AppIcon.appiconset and the macOS bundle's AppIcon.icns (scripts/macos-app.sh). -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="70%">
+      <stop offset="0" stop-color="#16294a"/>
+      <stop offset="1" stop-color="#03070f"/>
+    </radialGradient>
+    <radialGradient id="ring" cx="38%" cy="30%" r="80%">
+      <stop offset="0" stop-color="#fff0a8"/>
+      <stop offset="0.35" stop-color="#e2ad3c"/>
+      <stop offset="0.7" stop-color="#a26a16"/>
+      <stop offset="1" stop-color="#4e2f06"/>
+    </radialGradient>
+    <linearGradient id="ringEdge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5a3a08"/>
+      <stop offset="1" stop-color="#ffe08a"/>
+    </linearGradient>
+    <radialGradient id="stone" cx="45%" cy="38%" r="70%">
+      <stop offset="0" stop-color="#3f74c4"/>
+      <stop offset="0.55" stop-color="#1d4384"/>
+      <stop offset="1" stop-color="#0a1b3c"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff6b8"/>
+      <stop offset="0.22" stop-color="#ffd23d"/>
+      <stop offset="0.58" stop-color="#f4991c"/>
+      <stop offset="0.85" stop-color="#d4570f"/>
+      <stop offset="1" stop-color="#9c2a08"/>
+    </linearGradient>
+    <linearGradient id="litFace" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fffbe0" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#fffbe0" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="grain" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="4" seed="7" result="n"/>
+      <feColorMatrix in="n" type="matrix"
+        values="0 0 0 0 0.02  0 0 0 0 0.06  0 0 0 0 0.14  0 0 0 1.4 -0.55"/>
+      <feComposite in2="SourceGraphic" operator="in"/>
+    </filter>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <clipPath id="inner"><circle cx="512" cy="512" r="388"/></clipPath>
+    <path id="w" d="M170 250 L452 250 L420 292 L444 598 L494 428 L512 404 L530 428 L580 598 L604 292
+                    L572 250 L854 250 L822 292 L676 804 L604 804 L512 566 L420 804 L348 804 L202 292 Z"/>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- The ring: gold, a dark seam inside, and studs round it. -->
+  <circle cx="512" cy="512" r="470" fill="url(#ring)"/>
+  <circle cx="512" cy="512" r="470" fill="none" stroke="#3a2204" stroke-width="10"/>
+  <circle cx="512" cy="512" r="452" fill="none" stroke="#fff3b0" stroke-opacity="0.55" stroke-width="4"/>
+  <g fill="#5a3a08">
+    <circle cx="512" cy="72" r="13"/><circle cx="512" cy="952" r="13"/>
+    <circle cx="72" cy="512" r="13"/><circle cx="952" cy="512" r="13"/>
+    <circle cx="201" cy="201" r="13"/><circle cx="823" cy="201" r="13"/>
+    <circle cx="201" cy="823" r="13"/><circle cx="823" cy="823" r="13"/>
+  </g>
+  <g fill="#ffeaa0">
+    <circle cx="508" cy="68" r="5"/><circle cx="508" cy="948" r="5"/>
+    <circle cx="68" cy="508" r="5"/><circle cx="948" cy="508" r="5"/>
+    <circle cx="197" cy="197" r="5"/><circle cx="819" cy="197" r="5"/>
+    <circle cx="197" cy="819" r="5"/><circle cx="819" cy="819" r="5"/>
+  </g>
+  <circle cx="512" cy="512" r="402" fill="url(#ringEdge)"/>
+
+  <!-- The stone: deep blue, clouded. -->
+  <circle cx="512" cy="512" r="388" fill="url(#stone)"/>
+  <circle cx="512" cy="512" r="388" fill="#000" filter="url(#grain)"/>
+  <circle cx="512" cy="512" r="388" fill="none" stroke="#020814" stroke-opacity="0.7" stroke-width="18"/>
+
+  <!-- The W: its shadow on the stone, the gold, a lit left face per stroke, a dark rim. -->
+  <g clip-path="url(#inner)">
+    <use href="#w" transform="translate(14 22)" fill="#000" fill-opacity="0.65" filter="url(#shadow)"/>
+  </g>
+  <use href="#w" fill="url(#gold)"/>
+  <clipPath id="wclip"><use href="#w"/></clipPath>
+  <g clip-path="url(#wclip)">
+    <polygon points="170,250 300,250 404,804 348,804" fill="url(#litFace)"/>
+    <polygon points="512,404 530,428 590,620 560,690" fill="url(#litFace)" opacity="0.8"/>
+    <polygon points="572,250 700,250 652,520 604,292" fill="url(#litFace)" opacity="0.9"/>
+    <polygon points="452,250 420,292 444,598 470,520" fill="#7a2a04" fill-opacity="0.35"/>
+    <polygon points="854,250 822,292 676,804 760,560" fill="#7a2a04" fill-opacity="0.35"/>
+  </g>
+  <use href="#w" fill="none" stroke="#fff4c2" stroke-opacity="0.6" stroke-width="5" transform="translate(-2 -3)"/>
+  <use href="#w" fill="none" stroke="#3b1402" stroke-width="9" stroke-linejoin="miter"/>
+</svg>

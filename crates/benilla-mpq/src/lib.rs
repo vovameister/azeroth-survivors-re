@@ -1,4 +1,4 @@
-//! A read-only MPQ reader for the 1.12.1 `Data/` chain: format V1/V2, every file stored whole or
+//! An MPQ reader for the 1.12.1 `Data/` chain, and a writer for trimmed copies ([`write`]): format V1/V2, every file stored whole or
 //! `COMPRESS`-flagged and sectored, no encrypted or single-unit files, no PTCH patches. Anything
 //! else is a hard error.
 //!
@@ -21,6 +21,8 @@ use benilla_bytes::{capped, ByteExt};
 
 mod crypto;
 use crypto::{decrypt_block, hash_string, hash_type};
+pub mod write;
+pub use write::ArchiveWriter;
 
 /// `MPQ\x1A` as a little-endian `u32`: the archive header signature.
 const SIGNATURE: u32 = 0x1A51_504D;

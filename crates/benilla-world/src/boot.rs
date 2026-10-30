@@ -6,6 +6,16 @@ use bevy::prelude::*;
 
 use crate::thread_qos;
 
+/// The IO and async-compute pools' class. User-initiated yields to the frame, but on iOS the IO
+/// pool's loaders hold the asset server's lock that the frame's systems take too (a std `RwLock`,
+/// which lends no priority), so a frame thread waits on a lower class; and a phone runs no
+/// background build to yield to. There they match the frame.
+const LOAD_QOS: thread_qos::QosClass = if cfg!(target_os = "ios") {
+    thread_qos::QosClass::UserInteractive
+} else {
+    thread_qos::QosClass::UserInitiated
+};
+
 /// `DefaultPlugins` with benilla's engine tuning applied, around the caller's primary window.
 #[cfg_attr(not(target_arch = "wasm32"), allow(unused_mut))]
 pub fn tuned_default_plugins(mut primary_window: Window) -> PluginGroupBuilder {
@@ -27,9 +37,21 @@ pub fn tuned_default_plugins(mut primary_window: Window) -> PluginGroupBuilder {
         })
         // Deliberately no `AssetPlugin::file_path`: a baked source path resolves only on the build
         // machine. Every shader is embedded (`embedded://<crate>/shaders/…`), so no root is read.
-        // Quiet wgpu/naga; the ring keeps the last stderr lines for the crash report (`log_ring`).
+        // Quiet wgpu/naga, and winit's iOS event-order notes (UIKit hands it `AboutToWait` in the
+        // redraw phase; it logs that and handles the event all the same); the ring keeps the last
+        // stderr lines for the crash report (`log_ring`).
+        //
+        // On iOS every span that passes the filter also becomes an `os_activity` in the unified
+        // log (bevy_log's `tracing-oslog` layer): bevy_render's batching spans alone made ~5,000 a
+        // second, each a system call on the frame. There their info level is off.
         .set(bevy::log::LogPlugin {
-            filter: "wgpu=error,naga=warn".into(),
+            filter: if cfg!(target_os = "ios") {
+                "wgpu=error,naga=warn,winit::platform_impl::ios::app_state=error,\
+                 bevy_render=warn,benilla_app::ui_script::extract=warn"
+                    .into()
+            } else {
+                "wgpu=error,naga=warn".into()
+            },
             custom_layer: |_| {
                 #[cfg(target_arch = "wasm32")]
                 {
@@ -43,7 +65,7 @@ pub fn tuned_default_plugins(mut primary_window: Window) -> PluginGroupBuilder {
         })
         // Asset loads parse synchronously on the IO pool, and Bevy's default 4 threads saturate on
         // a dense teleport. Workers spawn at default QoS, behind any background build:
-        // compute is user-interactive, IO and async compute user-initiated, and
+        // compute is user-interactive, IO and async compute `LOAD_QOS`, and
         // `ThreadQosPlugin` promotes the render thread from inside.
         .set(TaskPoolPlugin {
             task_pool_options: TaskPoolOptions {
@@ -52,13 +74,13 @@ pub fn tuned_default_plugins(mut primary_window: Window) -> PluginGroupBuilder {
                     max_threads: 8,
                     percent: 0.5,
                     on_thread_spawn: Some(std::sync::Arc::new(|| {
-                        thread_qos::promote_current_thread(thread_qos::QosClass::UserInitiated)
+                        thread_qos::promote_current_thread(LOAD_QOS)
                     })),
                     on_thread_destroy: None,
                 },
                 async_compute: bevy::app::TaskPoolThreadAssignmentPolicy {
                     on_thread_spawn: Some(std::sync::Arc::new(|| {
-                        thread_qos::promote_current_thread(thread_qos::QosClass::UserInitiated)
+                        thread_qos::promote_current_thread(LOAD_QOS)
                     })),
                     ..TaskPoolOptions::default().async_compute
                 },

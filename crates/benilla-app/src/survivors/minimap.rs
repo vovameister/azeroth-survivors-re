@@ -150,6 +150,10 @@ impl MiniMap {
     }
 }
 
+/// The cluster's root, which [`super::touch`] moves aside for the pause button.
+#[derive(Component)]
+pub(super) struct MapCluster;
+
 /// `MinimapCluster` and its children, in cluster-local units (top-left origin) from `Minimap.xml`.
 pub(super) fn spawn_cluster(root: &mut ChildSpawnerCommands, font: &Handle<Font>, map: &MiniMap) {
     let at = |left: f32, top: f32, w: f32, h: f32| Node {
@@ -169,14 +173,17 @@ pub(super) fn spawn_cluster(root: &mut ChildSpawnerCommands, font: &Handle<Font>
             UiArt::crop(path, coords),
         )
     };
-    root.spawn(Node {
-        position_type: PositionType::Absolute,
-        right: Val::Px(0.0),
-        top: Val::Px(0.0),
-        width: Val::Px(192.0),
-        height: Val::Px(192.0),
-        ..default()
-    })
+    root.spawn((
+        MapCluster,
+        Node {
+            position_type: PositionType::Absolute,
+            right: Val::Px(0.0),
+            top: Val::Px(0.0),
+            width: Val::Px(192.0),
+            height: Val::Px(192.0),
+            ..default()
+        },
+    ))
     .with_children(|cluster| {
         cluster.spawn((
             at(0.0, 0.0, 192.0, 32.0),

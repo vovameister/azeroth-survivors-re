@@ -13,6 +13,7 @@ use std::time::Duration;
 
 use bevy::input::keyboard::KeyboardInput;
 use bevy::input::mouse::{AccumulatedMouseMotion, MouseButtonInput, MouseWheel};
+use bevy::input::touch::TouchInput;
 use bevy::prelude::*;
 use bevy::time::Real;
 
@@ -49,12 +50,15 @@ const AUTO_LOGOUT_AFTER: Duration = Duration::from_millis(1_800_000);
 ///
 /// The store sits ahead of dispatch, so a keystroke the chat edit box consumes still stamps: this
 /// reads the raw messages, not [`crate::bindings::BindingsState`], outside the in-world gate.
+/// A touch stamps as a button does: a phone has no other input, and without it a touch-only
+/// player reads as idle.
 pub(crate) fn stamp_input(
     time: Res<Time<Real>>,
     mut last: ResMut<LastInput>,
     mut keys: MessageReader<KeyboardInput>,
     mut buttons: MessageReader<MouseButtonInput>,
     mut wheel: MessageReader<MouseWheel>,
+    mut touches: MessageReader<TouchInput>,
     motion: Res<AccumulatedMouseMotion>,
 ) {
     // `count()` and a bitwise `|` drain every reader, or unread messages warm the clock next frame.
@@ -62,6 +66,7 @@ pub(crate) fn stamp_input(
     let any = (keys.read().filter(|k| !k.repeat).count() != 0)
         | (buttons.read().count() != 0)
         | (wheel.read().count() != 0)
+        | (touches.read().count() != 0)
         | (motion.delta != Vec2::ZERO);
     if any {
         last.0 = time.elapsed();
@@ -134,6 +139,7 @@ pub(crate) fn idle_handler(
     follow: Res<crate::player::FollowState>,
     approach: Res<crate::player::Approach>,
     logout: Res<crate::ui_logout::LogoutState>,
+    self_guid: Res<crate::net::SelfGuid>,
 ) {
     let idle = time.elapsed().saturating_sub(last.0);
     if idle < AUTO_AFK_AFTER {
@@ -189,7 +195,9 @@ pub(crate) fn idle_handler(
     }
     // `0x482eee call 0x5ab0d0; 0x482ef5 jne`: while a logout is pending the whole leg is skipped,
     // the line with the request, so it runs once per logout and again after a cancel.
-    if action.camp && !logout.pending() {
+    // With no world session (the server-less modes) there is nothing to camp out of, and the
+    // dropped request would come back every frame, since nothing then marks a logout pending.
+    if action.camp && !logout.pending() && self_guid.0.is_some() {
         if let Some(line) = strings("IDLE_MESSAGE") {
             push_system(&mut chat, line);
         }
@@ -396,7 +404,8 @@ mod tests {
                 .init_resource::<AccumulatedMouseMotion>()
                 .add_message::<KeyboardInput>()
                 .add_message::<MouseButtonInput>()
-                .add_message::<MouseWheel>();
+                .add_message::<MouseWheel>()
+                .add_message::<TouchInput>();
             app.world_mut()
                 .resource_mut::<Time<Real>>()
                 .advance_by(Duration::from_millis(1234));
@@ -473,6 +482,19 @@ mod tests {
             touched,
             "and bare mouse movement, with no button held"
         );
+        assert_eq!(
+            stamped(&|app| {
+                app.world_mut().write_message(TouchInput {
+                    phase: bevy::input::touch::TouchPhase::Started,
+                    position: Vec2::new(100.0, 100.0),
+                    window: Entity::PLACEHOLDER,
+                    force: None,
+                    id: 0,
+                });
+            }),
+            touched,
+            "and a touch, a phone's only input"
+        );
 
         // Auto-repeat is category 0xa, whose handler `0x766070` has no store.
         assert_eq!(
@@ -506,7 +528,8 @@ mod tests {
             .init_resource::<crate::player::Approach>()
             .init_resource::<crate::ui_logout::LogoutState>()
             .add_message::<crate::player::StandStateRequest>()
-            .insert_resource(NetCommands(tx));
+            .insert_resource(NetCommands(tx))
+            .insert_resource(crate::net::SelfGuid(Some(0x4000_0000_0000_0009)));
         // `LastInput` stays at zero and the clock walks forward, so "idle" is just the elapsed.
         app.world_mut()
             .resource_mut::<Time<Real>>()
@@ -603,6 +626,23 @@ mod tests {
             .drain()
             .next()
             .is_none());
+    }
+
+    /// With no world session (the server-less modes) the camp leg stays quiet: a dropped request
+    /// marks nothing pending, so it would come back every frame.
+    #[test]
+    fn thirty_minutes_idle_without_a_world_session_never_camps() {
+        let (mut app, _rx) = world(1_800_000, &[]);
+        app.insert_resource(crate::net::SelfGuid(None));
+        for _ in 0..3 {
+            app.world_mut().run_system_once(idle_handler).unwrap();
+        }
+        let mut script = app
+            .world_mut()
+            .remove_non_send_resource::<benilla_ui::script::UiScript>()
+            .unwrap();
+        assert!(script.take_session_requests().is_empty(), "no logout asked for");
+        assert!(lines(&app).is_empty(), "and no idle message printed");
     }
 
     /// `0x482ef5`: the leg, line and request, is skipped while the logout it asked for is pending,

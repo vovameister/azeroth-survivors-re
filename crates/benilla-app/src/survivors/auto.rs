@@ -4,6 +4,11 @@
 //! saves a screenshot every few seconds, which needs no window focus. A `:idle`, `:all` or `:late`
 //! suffix on the class name changes the run, as the fields below say. `WOW_SURVIVORS_MAP=<index or
 //! name>` picks the battleground.
+//!
+//! `<class>:census` touches every asset a player could: at the menu it shows every class in every
+//! look, then the run gets the whole pool, every enemy and boss of the battleground at once, and
+//! the mobility spell pressed every few seconds; `:census-run` skips the menu tour. With
+//! `WOW_DATA_TRACE` it lists the files a trimmed `Data` must hold (`scripts/trim-data.sh`).
 
 use bevy::prelude::*;
 use bevy::render::view::screenshot::{save_to_disk, Screenshot};
@@ -26,6 +31,13 @@ pub(super) struct Auto {
     /// `<class>:late`: the whole pool at its top level, two thirds of the way in, for the crowd at
     /// its thickest.
     late: bool,
+    /// `<class>:census`: see the module header.
+    census: bool,
+    /// The census's menu tour: the class and look on show next, `None` once every one has shown.
+    tour: Option<(usize, usize)>,
+    /// Seconds to the census's next mobility press, and whether the key is down.
+    press_t: f32,
+    pressed: bool,
     frames: u32,
     wait: f32,
     shots: Option<std::path::PathBuf>,
@@ -63,7 +75,9 @@ pub(super) fn from_env() -> Option<Auto> {
     let (name, mode) = want.trim().split_once(':').unwrap_or((want.trim(), ""));
     let idle = mode.eq_ignore_ascii_case("idle");
     let late = mode.eq_ignore_ascii_case("late");
-    let all = late || mode.eq_ignore_ascii_case("all");
+    let tour = mode.eq_ignore_ascii_case("census");
+    let census = tour || mode.eq_ignore_ascii_case("census-run");
+    let all = late || census || mode.eq_ignore_ascii_case("all");
     let class = data::CLASSES
         .iter()
         .position(|c| c.name.eq_ignore_ascii_case(name))
@@ -90,6 +104,10 @@ pub(super) fn from_env() -> Option<Auto> {
         idle,
         all,
         late,
+        census,
+        tour: tour.then_some((0, 0)),
+        press_t: 8.0,
+        pressed: false,
         frames: 0,
         wait: 0.0,
         shots,
@@ -107,15 +125,29 @@ pub(super) fn steer(auto: &Auto) -> Vec3 {
 }
 
 /// Toward the nearest gem, pushed off by every enemy close enough to bite, drifting home when
-/// there is nothing to pick up.
+/// there is nothing to pick up. A census also presses the mobility key every few seconds: here,
+/// ahead of the input stage, so the spell reads the press the frame it lands.
 pub(super) fn plan(
     time: Res<Time<Real>>,
     mut auto: ResMut<Auto>,
+    mut keys: ResMut<ButtonInput<KeyCode>>,
     selection: Res<Selection>,
     hero: Query<&Transform, With<Hero>>,
     gems: Query<&Transform, (With<Gem>, Without<Hero>)>,
     foes: Query<(&Transform, &Enemy), Without<Hero>>,
 ) {
+    if auto.pressed {
+        keys.release(super::mobility::KEY);
+        auto.pressed = false;
+    }
+    if auto.census {
+        auto.press_t -= time.delta_secs();
+        if auto.press_t <= 0.0 {
+            auto.press_t = 4.0;
+            keys.press(super::mobility::KEY);
+            auto.pressed = true;
+        }
+    }
     let Some(hero) = hero.single().ok().filter(|_| !auto.idle) else {
         auto.dir = Vec3::ZERO;
         return;
@@ -165,11 +197,44 @@ pub(super) fn drive(
     loading: Res<crate::loading_screen::LoadingScreen>,
     heroes: Query<(), With<Hero>>,
     enemies: Query<&Enemy>,
+    gems: Query<(), With<super::enemies::Gem>>,
 ) {
     let dt = time.delta_secs();
     auto.wait += dt;
     auto.frames += 1;
+    let touring = auto.tour.filter(|_| *phase.get() == Phase::Menu);
     match phase.get() {
+        Phase::Menu if touring.is_some() => {
+            let (class, look) = touring.unwrap_or_default();
+            if selection.map != auto.map {
+                selection.map = auto.map;
+                selection.version += 1;
+                auto.wait = 0.0;
+            } else if selection.class != Some(class) {
+                selection.class = Some(class);
+                selection.looks.clear();
+                selection.look = None;
+                selection.version += 1;
+                auto.wait = 0.0;
+            } else if selection.looks.is_empty() || heroes.is_empty() || loading.covering() {
+                auto.wait = 0.0;
+            } else if selection.look != Some(look) {
+                selection.look = Some(look);
+                selection.version += 1;
+                auto.wait = 0.0;
+            } else if auto.wait > 1.5 {
+                // Long enough for the look's model, skin and gear to load and show.
+                auto.tour = if look + 1 < selection.looks.len() {
+                    Some((class, look + 1))
+                } else if class + 1 < data::CLASSES.len() {
+                    Some((class + 1, 0))
+                } else {
+                    info!("survivors auto: census menu tour done");
+                    None
+                };
+                auto.wait = 0.0;
+            }
+        }
         Phase::Menu => {
             if selection.map != auto.map {
                 selection.map = auto.map;
@@ -200,6 +265,19 @@ pub(super) fn drive(
                                 cd: 0.5,
                             });
                         }
+                    }
+                }
+                if auto.census {
+                    // Every enemy and boss of the battleground at once, round the arena.
+                    let roster = data::roster(selection.map);
+                    let center = super::hero::arena(selection.map_def());
+                    let n = roster.enemies.len();
+                    for (i, def) in roster.enemies.iter().chain(&roster.bosses).enumerate() {
+                        let a = i as f32 * 0.7;
+                        let at = center + Vec3::new(a.cos(), 0.0, a.sin()) * 20.0;
+                        let boss = i >= n;
+                        let run = &mut run;
+                        super::enemies::spawn_enemy(&mut commands, run, def, at, center, boss);
                     }
                 }
                 if auto.late {
@@ -244,6 +322,7 @@ pub(super) fn drive(
         let fps = auto.frames as f32 / 10.0;
         auto.frames = 0;
         let alive = enemies.iter().filter(|e| !e.dead).count();
+        let gems = gems.iter().count();
         let build: Vec<String> = run
             .abilities
             .iter()
@@ -251,7 +330,7 @@ pub(super) fn drive(
             .chain(run.passives.iter().map(|(p, l)| format!("{}:{}", p.key, l)))
             .collect();
         info!(
-            "survivors auto: {:?} t={:.0}s fps={fps:.0} alive={alive} level={} hp={:.0} kills={} damage={:.0} build=[{}]",
+            "survivors auto: {:?} t={:.0}s fps={fps:.0} alive={alive} gems={gems} level={} hp={:.0} kills={} damage={:.0} build=[{}]",
             phase.get(),
             run.elapsed,
             run.level,

@@ -57,6 +57,34 @@ pub struct CreatureVoiceCatalog {
     rows: HashMap<u32, CreatureVoice>,
 }
 
+impl CreatureVoice {
+    /// Every `SoundEntries` kit the set names, the non-zero ones: for tools that pack a creature's
+    /// whole voice.
+    pub fn kits(&self) -> Vec<u32> {
+        let mut out = vec![
+            self.death,
+            self.stun,
+            self.stand,
+            self.aggro,
+            self.wing_flap,
+            self.wing_glide,
+            self.alert,
+            self.loop_sound,
+            self.jump_start,
+            self.jump_end,
+            self.pet_attack,
+            self.pet_order,
+            self.pet_dismiss,
+        ];
+        out.extend(self.exertion);
+        out.extend(self.injury);
+        out.extend(self.fidget);
+        out.extend(self.custom_attack);
+        out.retain(|&k| k != 0);
+        out
+    }
+}
+
 impl CreatureVoiceCatalog {
     /// The voice set for a creature display id (`UNIT_FIELD_DISPLAYID`).
     pub fn for_display(&self, display_id: u32) -> Option<&CreatureVoice> {

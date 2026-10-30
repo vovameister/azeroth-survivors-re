@@ -52,7 +52,7 @@ impl Plugin for SurvivorsPlugin {
             .init_resource::<hud::Offer>()
             .init_resource::<cards::PendingPick>()
             .init_resource::<touch::SafeArea>()
-            .init_resource::<touch::TouchStick>()
+            .init_resource::<touch::TouchSticks>()
             .init_resource::<touch::TouchMode>()
             .add_message::<abilities::Hit>()
             .add_message::<enemies::Loot>()
@@ -113,6 +113,7 @@ impl Plugin for SurvivorsPlugin {
                     hud::menu_preview,
                     hud::buttons,
                     hud::keys,
+                    hud::pause_when_hidden,
                     hud::refresh_menu,
                     menu::restore_pick,
                     menu::build_menu,
@@ -136,7 +137,10 @@ impl Plugin for SurvivorsPlugin {
                 (
                     hud::apply_ui_scale,
                     touch::inset_roots,
+                    touch::touch_layout,
                     touch::show_controls,
+                    touch::pause_feedback,
+                    touch::place_pause,
                     hud::fill_art,
                     hud::xp_hover,
                     hud::icon_tooltip,

@@ -93,7 +93,7 @@ fn radius_for(def: &EnemyDef) -> f32 {
     (if def.big { 1.3 } else { 0.6 }) * def.scale
 }
 
-fn spawn_enemy(
+pub(super) fn spawn_enemy(
     commands: &mut Commands,
     run: &mut Run,
     def: &'static EnemyDef,
@@ -409,15 +409,17 @@ pub(super) fn mark_dying(commands: &mut Commands, e: Entity) {
     commands.entity(e).insert(Dying(0.0));
 }
 
-/// Most gems on the ground at once; past it, a kill's worth joins an existing gem.
-const MAX_GEMS: usize = 350;
+/// Most gems on the ground at once; past it, a kill's worth joins the gem nearest it. Each gem is
+/// a whole wisp model (bones, particle motes, trails: some fifty entities), so the cap is what
+/// keeps a crowd left uncollected from dragging the frame down; 350 of them cost a phone dearly.
+const MAX_GEMS: usize = 64;
 
 pub(super) fn drop_loot(
     mut commands: Commands,
     mut drops: MessageReader<Loot>,
     mut rng: ResMut<Rng>,
     mut run: ResMut<Run>,
-    mut gems: Query<&mut Gem>,
+    mut gems: Query<(&Transform, &mut Gem)>,
 ) {
     let mut count = gems.iter().count();
     for d in drops.read() {
@@ -426,7 +428,15 @@ pub(super) fn drop_loot(
             spawn_gem(&mut commands, run.guid(), d.pos + Vec3::X * 0.8, heal);
         }
         if count >= MAX_GEMS && !d.boss {
-            if let Some(mut g) = gems.iter_mut().find(|g| matches!(g.kind, GemKind::Xp(_))) {
+            let nearest = gems
+                .iter_mut()
+                .filter(|(_, g)| !g.pulled && matches!(g.kind, GemKind::Xp(_)))
+                .min_by(|a, b| {
+                    let da = a.0.translation.distance_squared(d.pos);
+                    let db = b.0.translation.distance_squared(d.pos);
+                    da.total_cmp(&db)
+                });
+            if let Some((_, mut g)) = nearest {
                 if let GemKind::Xp(xp) = &mut g.kind {
                     *xp += d.xp;
                 }

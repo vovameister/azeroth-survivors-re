@@ -11,6 +11,13 @@ use benilla_app::BuildId;
 /// The app's whole run; returns the process exit code.
 #[no_mangle]
 pub extern "C" fn azeroth_survivors_main() -> i32 {
+    // A phone's panel is 3× its points (2868×1320 on a Pro Max): the world at 0.6 of that keeps a
+    // sharp picture at a third of the pixels; the interface stays native. Through the environment
+    // it is session-owned: a `renderScale` in `config.toml` does not apply (the mode has no
+    // setting for it); a scheme's `WOW_RENDER_SCALE` replaces it.
+    if std::env::var_os("WOW_RENDER_SCALE").is_none() {
+        std::env::set_var("WOW_RENDER_SCALE", "0.6");
+    }
     if std::env::var_os("BENILLA_HOME").is_none() {
         if let Some(home) = std::env::var_os("HOME") {
             let docs = std::path::Path::new(&home).join("Documents/benilla-config");

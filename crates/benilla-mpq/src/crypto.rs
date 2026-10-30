@@ -75,8 +75,8 @@ pub fn decrypt_block(data: &mut [u32], mut key: u32) {
     }
 }
 
-/// The inverse of [`decrypt_block`], for tests that build the encrypted tables an archive stores.
-#[cfg(test)]
+/// The inverse of [`decrypt_block`], for [`crate::write`] and the tests that build the encrypted
+/// tables an archive stores.
 pub(crate) fn encrypt_block(data: &mut [u32], mut key: u32) {
     let mut seed: u32 = 0xEEEE_EEEE;
     for v in data.iter_mut() {

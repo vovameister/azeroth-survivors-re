@@ -144,15 +144,34 @@ pub(super) fn daylight(debug: Option<ResMut<benilla_world::dev_state::DebugState
 #[derive(Resource, Default)]
 pub(super) struct AimPoint(pub(super) Option<Vec3>);
 
+/// How far ahead of the hero the touch aim stick sets the aim point: past any mobility spell's
+/// reach, so Blink goes its whole way along the stick.
+const STICK_AIM_REACH: f32 = 40.0;
+
 /// Cast the cursor onto the terrain: the camera ray meets the plane at the hero's height, then the
-/// terrain height there, a few times over, which settles on hills within a frame.
+/// terrain height there, a few times over, which settles on hills within a frame. On a touch
+/// screen the aim stick sets it instead, along the way it last pointed ([`super::touch`]).
+#[allow(clippy::too_many_arguments)]
 pub(super) fn aim_cursor(
     windows: Query<&Window, With<bevy::window::PrimaryWindow>>,
     cams: Query<(&Camera, &Transform), With<WorldCamera>>,
     hero: Query<&Transform, (With<Hero>, Without<WorldCamera>)>,
     world: WorldPoint,
+    touch: Res<super::touch::TouchMode>,
+    sticks: Res<super::touch::TouchSticks>,
+    rig: Res<CamRig>,
     mut aim: ResMut<AimPoint>,
 ) {
+    if touch.on() {
+        let point = sticks.facing.and_then(|d| {
+            let at = hero.single().ok()?.translation;
+            Some(at + stick_to_world(d, &rig) * STICK_AIM_REACH)
+        });
+        if aim.0 != point {
+            aim.0 = point;
+        }
+        return;
+    }
     let point = (|| {
         let cursor = windows.single().ok()?.cursor_position()?;
         let (cam, tf) = cams.single().ok()?;
@@ -183,6 +202,17 @@ pub(super) fn aim_cursor(
     }
 }
 
+/// A screen-space direction (`x` right, `y` down, as WASD and the touch sticks give it) on the
+/// ground: camera-relative in orbit mode, world-relative in the fixed top-down one.
+fn stick_to_world(d: Vec2, rig: &CamRig) -> Vec3 {
+    if rig.mode == CamMode::Orbit {
+        let (sy, cy) = rig.yaw.sin_cos();
+        Vec3::new(d.x * cy + d.y * sy, 0.0, d.y * cy - d.x * sy)
+    } else {
+        Vec3::new(d.x, 0.0, d.y)
+    }
+}
+
 /// WASD over the terrain within the battleground's leash, and the streaming focus on the hero.
 #[allow(clippy::too_many_arguments)]
 pub(super) fn drive_hero(
@@ -195,7 +225,7 @@ pub(super) fn drive_hero(
     aim: Res<AimPoint>,
     world: WorldPoint,
     auto: Option<Res<super::auto::Auto>>,
-    stick: Res<super::touch::TouchStick>,
+    sticks: Res<super::touch::TouchSticks>,
     mut player: ResMut<crate::player::Player>,
     mut hero: Query<(&mut Transform, &mut MovementState, &mut Hero)>,
 ) {
@@ -221,14 +251,10 @@ pub(super) fn drive_hero(
                 if keys.any_pressed([KeyCode::KeyD, KeyCode::ArrowRight]) {
                     dir.x += 1.0;
                 }
-                // The touch stick, screen-down as +z like S.
-                dir.x += stick.push.x;
-                dir.z += stick.push.y;
-                // In orbit mode WASD is camera-relative; in fixed mode it stays world-relative.
-                if rig.mode == CamMode::Orbit {
-                    let (sy, cy) = rig.yaw.sin_cos();
-                    dir = Vec3::new(dir.x * cy + dir.z * sy, 0.0, dir.z * cy - dir.x * sy);
-                }
+                // The touch move stick, screen-down as +z like S.
+                dir.x += sticks.walk.push.x;
+                dir.z += sticks.walk.push.y;
+                dir = stick_to_world(Vec2::new(dir.x, dir.z), &rig);
             }
             let mut pos = tf.translation;
             // Locked, the hero faces the cursor and WASD moves him under it, so he backpedals and

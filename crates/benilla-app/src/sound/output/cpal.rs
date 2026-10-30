@@ -346,6 +346,12 @@ impl Listeners {
         let thread = std::thread::Builder::new()
             .name("audio-devwatch".into())
             .spawn(move || {
+                // Its drop joins it from the main thread, which on iOS must not wait on a lower
+                // class (the OS flags it).
+                #[cfg(target_os = "ios")]
+                benilla_world::thread_qos::promote_current_thread(
+                    benilla_world::thread_qos::QosClass::UserInteractive,
+                );
                 while !watching.load(Ordering::Acquire) {
                     std::thread::park_timeout(WATCH_EVERY);
                     if watching.load(Ordering::Acquire) {
@@ -424,11 +430,20 @@ pub(super) struct Realtime {
 ///
 /// - unix: `SCHED_FIFO` priority 10, below rtkit's client ceiling (20) so the sound server's
 ///   threads stay above us; `EPERM` without `RLIMIT_RTPRIO` headroom.
+/// - iOS: the user-interactive QoS class. Darwin schedules by class, and `SCHED_FIFO` would leave
+///   the thread at Default, which the main thread then waits on (a priority inversion).
 /// - Windows: MMCSS task "Pro Audio" at `AVRT_PRIORITY_CRITICAL`.
 ///
 /// `period_ns` is only for macOS's time-constraint policy.
 pub(super) fn set_realtime(_period_ns: u64) -> Result<Realtime> {
-    #[cfg(all(unix, not(target_os = "macos")))]
+    #[cfg(target_os = "ios")]
+    {
+        benilla_world::thread_qos::promote_current_thread(
+            benilla_world::thread_qos::QosClass::UserInteractive,
+        );
+        Ok(Realtime {})
+    }
+    #[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
     {
         // SAFETY: a POSIX call on the calling thread with a zeroed `sched_param`, zeroed since
         // it carries reserved fields on some targets.

@@ -18,7 +18,7 @@ use super::{Owned, Phase, Rng, Run, Selection, Stats};
 
 const GOLD: Color = Color::srgb(1.0, 0.82, 0.0);
 /// The mobility button's edge, an action button's 36 units.
-const MOBILITY_SIZE: f32 = 40.0;
+pub(super) const MOBILITY_SIZE: f32 = 40.0;
 const EDGE: Color = Color::srgb(0.55, 0.45, 0.25);
 const BUTTON: Color = Color::srgba(0.18, 0.06, 0.04, 0.95);
 const BUTTON_HOT: Color = Color::srgba(0.36, 0.12, 0.06, 0.98);
@@ -96,6 +96,12 @@ pub(super) struct AbilitySweep {
 /// The class mobility's action button, bottom centre over the XP bar; shown once it is learned.
 #[derive(Component)]
 pub(super) struct MobilitySlot;
+/// The mobility slot's button, which [`super::touch`] makes the on-screen key.
+#[derive(Component)]
+pub(super) struct MobilityButton;
+/// The `F` over the mobility slot, hidden on a touch screen.
+#[derive(Component)]
+pub(super) struct MobilityKeyLabel;
 #[derive(Component)]
 pub(super) struct MobilityIcon;
 #[derive(Component)]
@@ -411,8 +417,9 @@ pub(super) fn setup_hud(
                 },
             ))
             .with_children(|col| {
-                col.spawn(centered(f, "F", 18.0, Color::WHITE));
+                col.spawn((MobilityKeyLabel, centered(f, "F", 18.0, Color::WHITE)));
                 col.spawn((
+                    MobilityButton,
                     Node {
                         width: Val::Px(MOBILITY_SIZE),
                         height: Val::Px(MOBILITY_SIZE),
@@ -1081,6 +1088,27 @@ pub(super) fn keys(
                 next.set(Phase::Menu);
             }
         }
+    }
+}
+
+/// Leaving the screen pauses a run: the app going to the background on a phone (`WillSuspend`
+/// comes one frame before it stops), or the window minimised on a desktop. It stays paused on the
+/// way back, for the player to resume. A hands-off test run ([`super::auto`]) plays on.
+pub(super) fn pause_when_hidden(
+    mut lifecycle: MessageReader<bevy::window::AppLifecycle>,
+    mut occluded: MessageReader<bevy::window::WindowOccluded>,
+    auto: Option<Res<super::auto::Auto>>,
+    phase: Res<State<Phase>>,
+    mut next: ResMut<NextState<Phase>>,
+) {
+    use bevy::window::AppLifecycle;
+    // `|`, not `||`: both readers drain every frame.
+    let hidden = lifecycle
+        .read()
+        .any(|l| matches!(l, AppLifecycle::WillSuspend | AppLifecycle::Suspended))
+        | occluded.read().any(|o| o.occluded);
+    if hidden && auto.is_none() && *phase.get() == Phase::Playing {
+        next.set(Phase::Paused);
     }
 }
 
