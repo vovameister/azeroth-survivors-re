@@ -748,6 +748,11 @@ pub(super) fn setup_hud(
                 ("Abandon run", UiAction::MainMenu),
                 ("Quit game", UiAction::Quit),
             ] {
+                // An iOS app does not quit itself (the system closes it), so there it is not
+                // offered.
+                if cfg!(target_os = "ios") && matches!(action, UiAction::Quit) {
+                    continue;
+                }
                 root.spawn((
                     button(action, BUTTON),
                     Node {
@@ -850,6 +855,10 @@ pub(super) fn setup_hud(
             .with_children(|b| {
                 b.spawn(text(f, "Play again", 22.0, GOLD));
             });
+            // Not on iOS, as in the pause menu.
+            if cfg!(target_os = "ios") {
+                return;
+            }
             root.spawn((
                 button(UiAction::Quit, Color::NONE),
                 Node {

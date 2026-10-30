@@ -468,6 +468,7 @@ pub(super) fn touch_layout(
     }
     let Ok((slot_entity, mut node)) = slot.single_mut() else { return };
     *done = true;
+    info!("touch: thumb layout on, camera at {CAMERA_DIST} (was {})", rig.dist);
     rig.dist = CAMERA_DIST;
     // The transform scales about the slot's centre, so the bottom gap takes the growth too; the
     // HUD's own `left: 50%` and half-width margin keep it centred.
